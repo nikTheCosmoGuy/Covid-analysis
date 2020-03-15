@@ -30,6 +30,13 @@ def create_plot(df, week_marks=True, **kwargs):
                        linestyle='--',
                        alpha=0.5,
                        lw=0.5)
+            
+        for date in focus.index.array[1:]:
+            date = pd.Timestamp(date)
+            ax.axvline(x=date, color='k',
+                       linestyle='--',
+                       alpha=0.2,
+                       lw=0.3)
     
     return fig, ax
 
@@ -114,7 +121,7 @@ focus = country(df, cntry)
 
 
 
-sub_focus = fittable(focus)
+sub_focus = fittable(focus).iloc[-14:]
 #sub_focus = total.iloc[5:-30]
 
 
@@ -127,11 +134,14 @@ fig3, ax3 = create_plot(sub_focus, logy=True)
 xrange = np.array(range(len(sub_focus)))
 N = np.log(fittable(sub_focus)).squeeze()
 
-slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange,
-                                                      y=N,
+mask = ~pd.isna(N)
+#mask.iloc[-3]=False
+
+slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
+                                                      y=N[mask],
                                                       )
 
-sub_focus['Fit']= np.exp(intercept)*np.exp(xrange*slope)
+sub_focus['Fit']= np.exp(intercept)*np.exp(xrange*slope-stderr)
 
 fig4, ax4 = create_plot(sub_focus, logy=False)
 
