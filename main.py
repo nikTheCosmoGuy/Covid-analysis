@@ -83,7 +83,7 @@ def country(df, cntry, states=False):
 
 
 
-cntry = 'China'
+cntry = 'Australia'
 
 plt.close('all')
 plt.ion()
@@ -101,7 +101,7 @@ df.columns = pd.to_datetime(df.columns, infer_datetime_format=True)
 total = df.sum().reset_index().rename(columns={'index': 'Date', 0: 'Total'})
 
 total = total.set_index('Date')
-#ax = total.plot()
+ax = total.plot()
 
 focus = country(df, cntry)
 
@@ -115,6 +115,7 @@ focus = country(df, cntry)
 
 
 sub_focus = fittable(focus)
+#sub_focus = total.iloc[5:-30]
 
 
 country_list = data['Country/Region'].unique()
@@ -123,8 +124,14 @@ fittable(sub_focus).plot(logy=True)
 
 fig3, ax3 = create_plot(sub_focus, logy=True)
 
+xrange = np.array(range(len(sub_focus)))
+N = np.log(fittable(sub_focus)).squeeze()
 
-slope, intercept, rvalue, pvalue, stderr = linregress(x=np.array(range(len(sub_focus))),
-                                                      y=np.log(fittable(focus)).squeeze(),
+slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange,
+                                                      y=N,
                                                       )
+
+sub_focus['Fit']= np.exp(intercept)*np.exp(xrange*slope)
+
+fig4, ax4 = create_plot(sub_focus, logy=False)
 
