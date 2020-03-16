@@ -90,15 +90,19 @@ def country(df, cntry, states=False):
 
 
 
-cntry = 'Australia'
+cntry = 'China'
 
 plt.close('all')
 plt.ion()
 
-loc = r'C:\RWA\Code\COVID-19\csse_covid_19_data\csse_covid_19_time_series'
-loc = Path(loc)
+code_path = code_path = Path(__file__).parents[1]
+loc = code_path.joinpath('COVID-19',
+                         'csse_covid_19_data',
+                         'csse_covid_19_time_series',
+                         )
 
-state = 'Confirmed'
+
+state = 'Deaths'
 
 data = pd.read_csv(loc.joinpath(f'time_series_19-covid-{state}.csv'))
 
@@ -113,21 +117,19 @@ ax = total.plot()
 focus = country(df, cntry)
 
 #plt.figure()
-#ax2 = focus.plot()
-#fig = ax2.figure
-
-
-#plt.ioff()
+fig2, ax2 = create_plot(focus)
 
 
 
-sub_focus = fittable(focus).iloc[-14:]
-#sub_focus = total.iloc[5:-30]
+#plt.ioff(
+
+sub_focus = fittable(focus)
+sub_focus = focus.iloc[-14:]
 
 
 country_list = data['Country/Region'].unique()
 
-fittable(sub_focus).plot(logy=True)
+sub_focus.plot(logy=True)
 
 fig3, ax3 = create_plot(sub_focus, logy=True)
 
@@ -135,13 +137,14 @@ xrange = np.array(range(len(sub_focus)))
 N = np.log(fittable(sub_focus)).squeeze()
 
 mask = ~pd.isna(N)
-#mask.iloc[-3]=False
+mask.iloc[-3]=False
 
 slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
                                                       y=N[mask],
                                                       )
 
-sub_focus['Fit']= np.exp(intercept)*np.exp(xrange*slope-stderr)
+sub_focus['Fit (exp)'] = np.exp(intercept)*np.exp(xrange*slope-stderr)
+
 
 fig4, ax4 = create_plot(sub_focus, logy=False)
 
