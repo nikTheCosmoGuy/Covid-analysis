@@ -12,139 +12,87 @@ import datetime
 import os
 import numpy as np
 
+plt.close('all')
+
 from scipy.stats import linregress
+
+import data_helpers as dh
 
 today = datetime.date.today()
 
 
-def create_plot(df, week_marks=True, **kwargs):
-    
-    fig, ax = plt.subplots()
-    
-    df.plot(ax=ax, **kwargs)
-    
-    if week_marks:
-        for date in focus.index.array[6::7]:
-            date = pd.Timestamp(date)
-            ax.axvline(x=date, color='k',
-                       linestyle='--',
-                       alpha=0.5,
-                       lw=0.5)
-            
-        for date in focus.index.array[1:]:
-            date = pd.Timestamp(date)
-            ax.axvline(x=date, color='k',
-                       linestyle='--',
-                       alpha=0.2,
-                       lw=0.3)
-    
-    return fig, ax
-
-def fittable(df, least_cases=1):
-    return df.iloc[np.where(df>=1)[0]]
-
-def create_plotBK(df, week_marks=True, month_mark=False):
-    
-    pass
-
-def get_save_loc(today):
-    save_place = Path(os.path.join('results', str(today)))
-    save_place.absolute().mkdir(parents=True, exist_ok=True)
-    return save_place
-
-def day_name(date):
-    
-    day = today.weekday()
-    names = {0: 'Monday',
-             1: 'Tuesday',
-             2: 'Wednesday',
-             3: 'Thursday',
-             4: 'Friday',
-             5: 'Satday',
-             6: 'Sunday'}
-    return names[day]
-
-def make_folder(path):
-    
-    if not os.path.exists(path):
-        os.mkdir(path)
-
-def growth(df):
-    return df-df.shift(1)
-
-def growth_rate(df):
-    return growth(df)/df.shift(1)
-
-def growth_factor(df):
-    return growth(df) / growth(df).shift(1)
-
-def country(df, cntry, states=False):
-    country = df.xs(cntry, level=1)
-    if not states:
-   
-        country = pd.DataFrame({cntry: country.sum()})
-
-    country.index.name = 'Date'
-
-    return country
 
 
+#outliers = 
 
-cntry = 'China'
+start_date = datetime.date(2020, 3, 2)
+cntry = 'Australia'
+state = 'Confirmed'
 
 plt.close('all')
 plt.ion()
 
-code_path = code_path = Path(__file__).parents[1]
+this_loc = __file__
+code_path = code_path = Path(this_loc).parents[1]
 loc = code_path.joinpath('COVID-19',
                          'csse_covid_19_data',
                          'csse_covid_19_time_series',
                          )
 
 
-state = 'Deaths'
+csse_file = loc.joinpath(f'time_series_19-covid-{state}.csv')
+
+#who_loc = code_path.joinpath('who_covid_19_situation_reports',
+#                             'who_covid_19_sit_rep_time_series',
+#                             )
+#who_file = who_loc.joinpath('who_covid_19_sit_rep_time_series.csv')
+
+
+# =============================================================================
+# Create Total figures
+# =============================================================================
+
 
 data = pd.read_csv(loc.joinpath(f'time_series_19-covid-{state}.csv'))
-
 df = data.set_index(list(data.columns[0:2])).drop(['Lat', 'Long'], axis=1)
 df.columns = pd.to_datetime(df.columns, infer_datetime_format=True)
-
 total = df.sum().reset_index().rename(columns={'index': 'Date', 0: 'Total'})
-
 total = total.set_index('Date')
-ax = total.plot()
 
-focus = country(df, cntry)
+fig, ax = dh.create_plot(total)
 
-#plt.figure()
-fig2, ax2 = create_plot(focus)
+# =============================================================================
+# See Focus
+# =============================================================================
+fig, axs = plt.subplots(2,1)
+focus = dh.country(df, cntry)
 
-
-
-#plt.ioff(
-
-sub_focus = fittable(focus)
-sub_focus = focus.iloc[-14:]
+dh.create_plot(focus, ax=axs[0])
+dh.create_plot(focus, logy=True, ax=axs[1])
 
 
-country_list = data['Country/Region'].unique()
+# =============================================================================
+# Create fittable regions
+# =============================================================================
+sub_focus = dh.fittable(focus)
+#sub_focus = focus.iloc[-14:]
+sub_focus = sub_focus[sub_focus.index >= pd.Timestamp(start_date)]
 
-sub_focus.plot(logy=True)
-
-fig3, ax3 = create_plot(sub_focus, logy=True)
+fig4, ax4 = dh.create_plot(sub_focus, logy=True)
 
 xrange = np.array(range(len(sub_focus)))
-N = np.log(fittable(sub_focus)).squeeze()
+N = np.log(dh.fittable(sub_focus)).squeeze()
 
 mask = ~pd.isna(N)
-mask.iloc[-3]=False
+
+outliers = pd.read_excel('Outliers.xlsx', index_col='Country')
+mask.iloc[-4] = False
 
 slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
                                                       y=N[mask],
                                                       )
+sub_focus['Fit (exp)'] = np.exp(intercept)*np.exp(xrange*slope)
 
-sub_focus['Fit (exp)'] = np.exp(intercept)*np.exp(xrange*slope-stderr)
+fig6, ax6 = dh.create_plot(sub_focus, logy=False)
 
-
-fig4, ax4 = create_plot(sub_focus, logy=False)
-
+fig6, ax6 = dh.create_plot(sub_focus, logy=True)
