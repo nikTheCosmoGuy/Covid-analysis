@@ -85,8 +85,10 @@ N = np.log(dh.fittable(sub_focus)).squeeze()
 
 mask = ~pd.isna(N)
 
+# Outliers not included in fit.
 outliers = pd.read_excel('Outliers.xlsx', index_col='Country')
-mask.iloc[-4] = False
+outl = outliers.loc[[cntry]]
+mask.loc[outl['Date']] = False
 
 slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
                                                       y=N[mask],
