@@ -93,6 +93,9 @@ slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
                                                       )
 sub_focus['Fit (exp)'] = np.exp(intercept)*np.exp(xrange*slope)
 
-fig6, ax6 = dh.create_plot(sub_focus, logy=False)
 
-fig6, ax6 = dh.create_plot(sub_focus, logy=True)
+figf, axsf = plt.subplots(2, 1)
+
+dh.create_plot(sub_focus, ax=axsf[0], logy=False)
+
+dh.create_plot(sub_focus,  ax=axsf[1], logy=True)
