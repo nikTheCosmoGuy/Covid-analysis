@@ -87,8 +87,10 @@ mask = ~pd.isna(N)
 
 # Outliers not included in fit.
 outliers = pd.read_excel('Outliers.xlsx', index_col='Country')
-outl = outliers.loc[[cntry]]
-mask.loc[outl['Date']] = False
+if cntry in outliers.index:
+    outl = outliers.loc[[cntry]]
+    mask.loc[outl['Date']] = False
+    print('No Outliers')
 
 slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
                                                       y=N[mask],
