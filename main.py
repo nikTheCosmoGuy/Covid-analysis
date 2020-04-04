@@ -15,19 +15,32 @@ import numpy as np
 plt.close('all')
 
 from scipy.stats import linregress
+from scipy.stats import norm
 
 import data_helpers as dh
 
 today = datetime.date.today()
 
+def report_slope(slope, stderr, rvalue):
+    
+    print(f'Fitted growth parameter = {slope:.3g} ± {stderr:.1g} (R^2={rvalue:.2g})))')
 
 
+mask_outliers = True
 
-#outliers = 
+start_date = datetime.date.min
+start_date = datetime.date(2020, 3, 3)
+last_date = datetime.date.max
 
-start_date = datetime.date(2020, 3, 2)
+start_mask = datetime.date.min
+last_mask = datetime.date.max
+
 cntry = 'Australia'
-state = 'Confirmed'
+
+state = False
+#state = 'New South Wales'
+
+report = 'Confirmed'
 
 plt.close('all')
 plt.ion()
@@ -40,7 +53,7 @@ loc = code_path.joinpath('COVID-19',
                          )
 
 
-csse_file = loc.joinpath(f'time_series_19-covid-{state}.csv')
+csse_file = loc.joinpath(f'time_series_covid19_{report}_global.csv')
 
 #who_loc = code_path.joinpath('who_covid_19_situation_reports',
 #                             'who_covid_19_sit_rep_time_series',
@@ -53,7 +66,7 @@ csse_file = loc.joinpath(f'time_series_19-covid-{state}.csv')
 # =============================================================================
 
 
-data = pd.read_csv(loc.joinpath(f'time_series_19-covid-{state}.csv'))
+data = pd.read_csv(loc.joinpath(csse_file))
 df = data.set_index(list(data.columns[0:2])).drop(['Lat', 'Long'], axis=1)
 df.columns = pd.to_datetime(df.columns, infer_datetime_format=True)
 total = df.sum().reset_index().rename(columns={'index': 'Date', 0: 'Total'})
@@ -65,7 +78,11 @@ fig, ax = dh.create_plot(total)
 # See Focus
 # =============================================================================
 fig, axs = plt.subplots(2,1)
-focus = dh.country(df, cntry)
+
+
+focus = dh.country(df, cntry, state=state)
+
+col_name = focus.columns[0]
 
 dh.create_plot(focus, ax=axs[0])
 dh.create_plot(focus, logy=True, ax=axs[1])
@@ -75,8 +92,9 @@ dh.create_plot(focus, logy=True, ax=axs[1])
 # Create fittable regions
 # =============================================================================
 sub_focus = dh.fittable(focus)
-#sub_focus = focus.iloc[-14:]
+
 sub_focus = sub_focus[sub_focus.index >= pd.Timestamp(start_date)]
+
 
 fig4, ax4 = dh.create_plot(sub_focus, logy=True)
 
@@ -86,11 +104,17 @@ N = np.log(dh.fittable(sub_focus)).squeeze()
 mask = ~pd.isna(N)
 
 # Outliers not included in fit.
-outliers = pd.read_excel('Outliers.xlsx', index_col='Country')
-if cntry in outliers.index:
-    outl = outliers.loc[[cntry]]
-    mask.loc[outl['Date']] = False
-    print('No Outliers')
+if mask_outliers:
+    outliers = pd.read_excel('Outliers.xlsx', index_col='Country')
+    if cntry in outliers.index:
+        outl = outliers.loc[[cntry]]
+        # TODO Bugged, this needs to check if index is in mask first
+#        if mask.loc[outl['Date']] > 0:
+        mask.loc[outl['Date']] = False
+        print('Outliers')
+
+mask.iloc[-10:]=False
+
 
 slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
                                                       y=N[mask],
@@ -103,3 +127,27 @@ figf, axsf = plt.subplots(2, 1)
 dh.create_plot(sub_focus, ax=axsf[0], logy=False)
 
 dh.create_plot(sub_focus,  ax=axsf[1], logy=True)
+
+fig_residual, axs_res = plt.subplots()
+
+residual = 100*(sub_focus[col_name] - sub_focus['Fit (exp)'])/sub_focus['Fit (exp)']
+residual = residual.to_frame()
+residual.columns = ['Diff %']
+
+dh.create_plot(residual, ax=axs_res)
+
+
+residual.hist()
+ax_hist = residual[mask].hist()
+
+N = len(residual[mask]) 
+res_mean = residual.mean()
+res_std = residual.std()
+res_stderr = res_std/np.sqrt(N)
+ 
+interval = ax_hist[0][0].xaxis.get_data_interval()
+xspace= np.linspace(interval[0], interval[1])
+ax_hist[0][0].plot(xspace, norm(loc=res_mean, scale=res_std).pdf(xspace))
+
+
+report_slope(slope, stderr, rvalue)
