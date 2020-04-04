@@ -85,12 +85,17 @@ def growth_rate(df):
 def growth_factor(df):
     return growth(df) / growth(df).shift(1)
 
-def country(df, cntry, states=False):
+def country(df, cntry, state=False):
     country = df.xs(cntry, level=1)
-    if not states:
+    if not state:
+        print('Not state')
+        result = pd.DataFrame({cntry: country.sum()})
 
-        country = pd.DataFrame({cntry: country.sum()})
+    else:
+        print('State')
+        result = country.loc[[state]]
+        result = result.transpose()
 
-    country.index.name = 'Date'
+    result.index.name = 'Date'
 
-    return country
+    return result
