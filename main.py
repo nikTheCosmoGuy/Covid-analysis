@@ -23,17 +23,26 @@ today = datetime.date.today()
 
 def report_slope(slope, stderr, rvalue):
     
-    print(f'Fitted growth parameter = {slope:.3g} ± {stderr:.1g} (R^2={rvalue:.2g})))')
+    double_time = np.log(2)/slope
+    print(f'Fitted growth parameter = {slope:.3g} ± {stderr:.1g} (R^2={rvalue:.2g})')
+    print(f'Doubling time ln2/alpha = {double_time:.2g}')
 
 
 mask_outliers = True
 
-start_date = datetime.date.min
-start_date = datetime.date(2020, 3, 3)
-last_date = datetime.date.max
+start_date = pd.Timestamp.min
+last_date = pd.Timestamp.max
 
-start_mask = datetime.date.min
-last_mask = datetime.date.max
+start_mask = pd.Timestamp.min
+last_mask = pd.Timestamp.max
+
+# =============================================================================
+# 
+# =============================================================================
+start_date = datetime.date(2020, 2, 14)
+
+start_mask = datetime.date(2020, 7, 14)
+last_mask = datetime.date(2020, 7, 30)
 
 cntry = 'Australia'
 
@@ -94,7 +103,7 @@ dh.create_plot(focus, logy=True, ax=axs[1])
 sub_focus = dh.fittable(focus)
 
 sub_focus = sub_focus[sub_focus.index >= pd.Timestamp(start_date)]
-
+sub_focus = sub_focus[sub_focus.index <= pd.Timestamp(last_date)]
 
 fig4, ax4 = dh.create_plot(sub_focus, logy=True)
 
@@ -102,6 +111,9 @@ xrange = np.array(range(len(sub_focus)))
 N = np.log(dh.fittable(sub_focus)).squeeze()
 
 mask = ~pd.isna(N)
+
+mask[mask.index <= pd.Timestamp(start_mask)] = False
+mask[mask.index >= pd.Timestamp(last_mask)] = False
 
 # Outliers not included in fit.
 if mask_outliers:
@@ -113,7 +125,7 @@ if mask_outliers:
         mask.loc[outl['Date']] = False
         print('Outliers')
 
-mask.iloc[-10:]=False
+
 
 
 slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
