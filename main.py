@@ -49,7 +49,7 @@ cntry = 'Australia'
 state = False
 #state = 'New South Wales'
 
-report = 'Confirmed'
+report = 'confirmed'
 
 plt.close('all')
 plt.ion()
@@ -86,7 +86,7 @@ fig, ax = dh.create_plot(total)
 # =============================================================================
 # See Focus
 # =============================================================================
-fig, axs = plt.subplots(2,1)
+fig, axs = plt.subplots(2, 1)
 
 
 focus = dh.country(df, cntry, state=state)
