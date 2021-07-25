@@ -27,7 +27,7 @@ def create_plot(df, week_marks='Sun', ax=None, **kwargs):
     
     if week_marks:
         #Mark sundays
-        target_days = df.index.weekday_name.str[:3]
+        target_days = df.index.day_name().str[:3]
         for date in df.index.array[np.where(target_days==week_marks)]:
             date = pd.Timestamp(date)
             ax.axvline(x=date, color='k',

@@ -39,17 +39,17 @@ last_mask = pd.Timestamp.max
 # =============================================================================
 # 
 # =============================================================================
-start_date = datetime.date(2020, 2, 14)
+start_date = datetime.date(2021, 7, 1)
 
-start_mask = datetime.date(2020, 7, 14)
-last_mask = datetime.date(2020, 7, 30)
+start_mask = datetime.date(2021, 7, 14)
+last_mask = datetime.date(2021, 7, 30)
 
 cntry = 'Australia'
 
 state = False
-#state = 'New South Wales'
+state = 'New South Wales'
 
-report = 'confirmed'
+report = 'Confirmed'
 
 plt.close('all')
 plt.ion()
@@ -64,21 +64,17 @@ loc = code_path.joinpath('COVID-19',
 
 csse_file = loc.joinpath(f'time_series_covid19_{report}_global.csv')
 
-#who_loc = code_path.joinpath('who_covid_19_situation_reports',
-#                             'who_covid_19_sit_rep_time_series',
-#                             )
-#who_file = who_loc.joinpath('who_covid_19_sit_rep_time_series.csv')
-
-
 # =============================================================================
-# Create Total figures
+# Create Total World figures
 # =============================================================================
 
 
 data = pd.read_csv(loc.joinpath(csse_file))
 df = data.set_index(list(data.columns[0:2])).drop(['Lat', 'Long'], axis=1)
 df.columns = pd.to_datetime(df.columns, infer_datetime_format=True)
-total = df.sum().reset_index().rename(columns={'index': 'Date', 0: 'Total'})
+df = df.dropna(axis=1, how='all')
+
+total = df.sum().reset_index().rename(columns={'index': 'Date', 0: 'World'})
 total = total.set_index('Date')
 
 fig, ax = dh.create_plot(total)
@@ -87,7 +83,6 @@ fig, ax = dh.create_plot(total)
 # See Focus
 # =============================================================================
 fig, axs = plt.subplots(2, 1)
-
 
 focus = dh.country(df, cntry, state=state)
 
@@ -119,13 +114,9 @@ mask[mask.index >= pd.Timestamp(last_mask)] = False
 if mask_outliers:
     outliers = pd.read_excel('Outliers.xlsx', index_col='Country')
     if cntry in outliers.index:
-        outl = outliers.loc[[cntry]]
-        # TODO Bugged, this needs to check if index is in mask first
-#        if mask.loc[outl['Date']] > 0:
-        mask.loc[outl['Date']] = False
-        print('Outliers')
-
-
+        outl = outliers.loc[[cntry]]        
+        # Drop outliers if already not included in data
+        mask.loc[mask.index.isin(outl['Date'])] = False
 
 
 slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
