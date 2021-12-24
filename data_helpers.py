@@ -99,3 +99,7 @@ def country(df, cntry, state=False):
     result.index.name = 'Date'
 
     return result
+
+def get_elapsed_days(df):
+    """Calculate days elapsed since first row"""
+    return ((df.iloc[:, 0] == '') | True).astype(int).cumsum() - 1
