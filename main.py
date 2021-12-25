@@ -39,10 +39,10 @@ last_mask = pd.Timestamp.max
 # =============================================================================
 # 
 # =============================================================================
-start_date = datetime.date(2021, 7, 1)
+start_date = datetime.date(2021, 12, 12)
 
-start_mask = datetime.date(2021, 7, 14)
-last_mask = datetime.date(2021, 7, 30)
+start_mask = datetime.date(2021, 12, 20)
+last_mask = datetime.date(2021, 12, 26)
 
 cntry = 'Australia'
 
@@ -86,7 +86,7 @@ fig, axs = plt.subplots(2, 1)
 
 focus = dh.country(df, cntry, state=state)
 
-col_name = focus.columns[0]
+cases_column = focus.columns[0]
 
 dh.create_plot(focus, ax=axs[0])
 dh.create_plot(focus, logy=True, ax=axs[1])
@@ -96,16 +96,21 @@ dh.create_plot(focus, logy=True, ax=axs[1])
 # Create fittable regions
 # =============================================================================
 sub_focus = dh.fittable(focus)
+sub_focus['ElapsedDays'] = dh.get_elapsed_days(sub_focus)
+
 
 sub_focus = sub_focus[sub_focus.index >= pd.Timestamp(start_date)]
 sub_focus = sub_focus[sub_focus.index <= pd.Timestamp(last_date)]
 
-fig4, ax4 = dh.create_plot(sub_focus, logy=True)
+
+fig4, ax4 = dh.create_plot(sub_focus[cases_column], logy=True)
 
 xrange = np.array(range(len(sub_focus)))
-N = np.log(dh.fittable(sub_focus)).squeeze()
+# xrange = sub_focus['ElapsedDays'].values
 
-mask = ~pd.isna(N)
+cases = np.log(dh.fittable(sub_focus[cases_column])).squeeze()
+
+mask = ~pd.isna(cases)
 
 mask[mask.index <= pd.Timestamp(start_mask)] = False
 mask[mask.index >= pd.Timestamp(last_mask)] = False
@@ -114,42 +119,43 @@ mask[mask.index >= pd.Timestamp(last_mask)] = False
 if mask_outliers:
     outliers = pd.read_excel('Outliers.xlsx', index_col='Country')
     if cntry in outliers.index:
-        outl = outliers.loc[[cntry]]        
+        outl = outliers.loc[[cntry]]
         # Drop outliers if already not included in data
         mask.loc[mask.index.isin(outl['Date'])] = False
 
 
 slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
-                                                      y=N[mask],
+                                                      y=cases[mask],
                                                       )
+
+
+
 sub_focus['Fit (exp)'] = np.exp(intercept)*np.exp(xrange*slope)
 
 
 figf, axsf = plt.subplots(2, 1)
 
-dh.create_plot(sub_focus, ax=axsf[0], logy=False)
-
-dh.create_plot(sub_focus,  ax=axsf[1], logy=True)
+dh.create_plot(sub_focus[[cases_column, "Fit (exp)"]], ax=axsf[0], logy=False)
+dh.create_plot(sub_focus[[cases_column, "Fit (exp)"]],  ax=axsf[1], logy=True)
 
 fig_residual, axs_res = plt.subplots()
 
-residual = 100*(sub_focus[col_name] - sub_focus['Fit (exp)'])/sub_focus['Fit (exp)']
+residual = 100*(sub_focus[cases_column] - sub_focus['Fit (exp)'])/sub_focus['Fit (exp)']
 residual = residual.to_frame()
 residual.columns = ['Diff %']
 
 dh.create_plot(residual, ax=axs_res)
 
-
 residual.hist()
 ax_hist = residual[mask].hist()
 
-N = len(residual[mask]) 
+n_data = len(residual[mask])
 res_mean = residual.mean()
 res_std = residual.std()
-res_stderr = res_std/np.sqrt(N)
- 
+res_stderr = res_std/np.sqrt(n_data)
+
 interval = ax_hist[0][0].xaxis.get_data_interval()
-xspace= np.linspace(interval[0], interval[1])
+xspace = np.linspace(interval[0], interval[1])
 ax_hist[0][0].plot(xspace, norm(loc=res_mean, scale=res_std).pdf(xspace))
 
 
