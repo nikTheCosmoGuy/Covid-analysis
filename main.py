@@ -24,7 +24,7 @@ today = datetime.date.today()
 def report_slope(slope, stderr, rvalue):
     
     double_time = np.log(2)/slope
-    print(f'Fitted growth parameter = {slope:.3g} ± {stderr:.1g} (R^2={rvalue:.2g})')
+    print(f'Fitted growth parameter = {slope:.3g} ± {stderr:.1g} (R^2={rvalue**2:.2g})')
     print(f'Doubling time ln2/alpha = {double_time:.2g}')
 
 
