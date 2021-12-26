@@ -105,7 +105,7 @@ sub_focus = sub_focus[sub_focus.index <= pd.Timestamp(last_date)]
 
 fig4, ax4 = dh.create_plot(sub_focus[cases_column], logy=True)
 
-xrange = np.array(range(len(sub_focus)))
+xrange = np.arange(len(sub_focus))
 # xrange = sub_focus['ElapsedDays'].values
 
 cases = np.log(dh.fittable(sub_focus[cases_column])).squeeze()
