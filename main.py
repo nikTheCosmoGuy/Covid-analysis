@@ -130,15 +130,21 @@ slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
 
 
 
-sub_focus['Fit (exp)'] = np.exp(intercept)*np.exp(xrange*slope)
 
+figf, axsf = plt.subplots(4, 1, figsize=(6.4, 9.6))
+figf.suptitle('Cases vs Models')
 
-figf, axsf = plt.subplots(2, 1)
+fitted_cases = sub_focus[[cases_column, "Fit (exp)"]]
 
-dh.create_plot(sub_focus[[cases_column, "Fit (exp)"]], ax=axsf[0], logy=False)
-dh.create_plot(sub_focus[[cases_column, "Fit (exp)"]],  ax=axsf[1], logy=True)
+dh.create_plot(fitted_cases, ax=axsf[0], logy=False, title='Total Cases')
+dh.create_plot(fitted_cases, ax=axsf[1], logy=True)
+dh.create_plot(fitted_cases - fitted_cases.shift(1),
+                ax=axsf[2], logy=False, title='Daily Cases')
+dh.create_plot(fitted_cases - fitted_cases.shift(1),
+                ax=axsf[3], logy=True)
 
 fig_residual, axs_res = plt.subplots()
+fig_residual.suptitle('Models Residuals')
 
 residual = 100*(sub_focus[cases_column] - sub_focus['Fit (exp)'])/sub_focus['Fit (exp)']
 residual = residual.to_frame()
