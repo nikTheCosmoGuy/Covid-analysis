@@ -16,6 +16,8 @@ plt.close('all')
 
 from scipy.stats import linregress
 from scipy.stats import norm
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
 
 import data_helpers as dh
 
@@ -39,10 +41,10 @@ last_mask = pd.Timestamp.max
 # =============================================================================
 # 
 # =============================================================================
-start_date = datetime.date(2021, 12, 12)
+start_date = datetime.date(2021, 11, 1)
 
-start_mask = datetime.date(2021, 12, 20)
-last_mask = datetime.date(2021, 12, 26)
+start_mask = datetime.date(2021, 12, 6)
+last_mask = datetime.date(2021, 12, 21)
 
 cntry = 'Australia'
 
@@ -122,14 +124,44 @@ if mask_outliers:
         outl = outliers.loc[[cntry]]
         # Drop outliers if already not included in data
         mask.loc[mask.index.isin(outl['Date'])] = False
-
+        
+# =============================================================================
+# Exponatial Model.
+# =============================================================================
 
 slope, intercept, rvalue, pvalue, stderr = linregress(x=xrange[mask],
                                                       y=cases[mask],
                                                       )
+sub_focus['Fit (exp)'] = np.exp(intercept)*np.exp(xrange*slope)
+
+# =============================================================================
+# Expontial Growth
+# =============================================================================
+X = xrange[mask].reshape(-1, 1)
+y = cases[mask].values.reshape(-1, 1)
+
+reg_exp = LinearRegression().fit(X, y)
+
+def scipy_return(model, X, y):
+    """Mimic Scipy stats equivalent parameter return."""
+    slope = model.coef_.squeeze()
+    intercept = model.intercept_.squeeze()
+    r2 = reg_exp.score(X, y) # TODO wrapped for generalisation.
+    # TODO this needs to generalise to correlation matrix
+    rvalue = np.sign(slope)*r2**0.5
+    return slope, intercept, rvalue, None, None
+    
+slope_sk, intercept_sk, rvalue_sk, pvalue_sk, stderr_sk = scipy_return(reg_exp,
+                                                                       X, y)
+    
+# =============================================================================
+# Exponatial Growth with increaseing linear.
+# =============================================================================
+square_feature = PolynomialFeatures(2).fit_transform(X)[:, 1:] #Drop intercept.
+reg_k_linear = LinearRegression().fit(square_feature, y)
 
 
-
+sub_focus['Fit (exp(R(t))'] = np.exp(reg_k_linear.intercept_)*np.exp(xrange*slope)
 
 figf, axsf = plt.subplots(4, 1, figsize=(6.4, 9.6))
 figf.suptitle('Cases vs Models')
@@ -166,3 +198,4 @@ ax_hist[0][0].plot(xspace, norm(loc=res_mean, scale=res_std).pdf(xspace))
 
 
 report_slope(slope, stderr, rvalue)
+report_slope(slope_sk, np.inf, rvalue_sk)
